@@ -1,12 +1,5 @@
 import sys
 # version: 2024 0523
-# 输入TE 和 dm6 的 paf文件， 然后输出4个文件, partial reads，spanning reads，spanning reads 的组成成分
-# 比之前的版本多了一个去除‘translocation’的功能
-# 修正了以前spanning reads寻找错误的bug
-# 删掉一条reads多个片段（>3）回贴到相同的TE的信息,完善了translocation 对 genome位置的剔除
-# 并且保留 overlap中较长的片段
-# 考虑完全包含，如果某个片段完全包含另一个片段，则较长的是真实的，如果不是完全包含，overlap过多的将被删除
-# 在print partial insertion 的时候，也需要print出 TE insertion 的位点
 
 TE = open(sys.argv[1],"r")
 TE_List = []
@@ -228,12 +221,5 @@ with open(sys.argv[6], "w") as file:
 with open(sys.argv[7], "w") as file:
     for sublist in new_TE_paf:
         file.write(str(sublist) + "\n")
-
-#with open(sys.argv[8], "w") as file:
-#    for rm in  te_sublists_to_remove:
-#        file.write(str(rm) + "\n")
-#with open(sys.argv[9], "w") as file:
-#    for overlap_info in te_overlap_info:
-#        file.write(str(overlap_info) + "\n")
 
 print("Done! Good Job!")
