@@ -1,0 +1,38 @@
+#!/bin/bash
+#$ -cwd
+#$ -S /bin/bash
+#$ -j y
+#$ -m n
+#$ -M wuw@sibcb.ac.cn
+#$ -notify
+#$ -N DM6_atac
+
+date
+
+DAPTH=/sibcb2/wuweilab2/liangyu/Data/20230606_bynGal4_pupa4d_HG_sh-crm-4F8_ATAC-seq/
+Bowtie2index=/sibcb1/wuweilab1/wuwei-lab/Reference/Fly/dm6/Sequence/Bowtie2Index/genome
+#dm6Blacklist=/sibcb1/wuweilab1/liangyu/END-seq-analysis/WangLu/20221113/dm6-blacklist.v2.bed
+chromSize=/sibcb1/wuweilab1/wuwei-lab/Reference/Fly/dm6/Sequence/dm6.chrom.sizes
+#source /sibcb/program/install/python-3.9/profile
+#python3 -m pip install --user cutadapt
+mkdir -p fixed.fastq/
+#cutadapt -j 12  -e 0.1 -O 3 -m 55 --quality-cutoff 25 -a CTGTCTCTTATA -A CTGTCTCTTATA -o fixed.fastq/${sample}_cutadapt_1.fq.gz -p fixed.fastq/${sample}_cutadapt_2.fq.gz  ${sample}_R1.fastq.gz ${sample}_R2.fastq.gz
+echo $sample
+bowtie2 -p 24 --very-sensitive -X 2000 -x ${Bowtie2index} \
+-1 fixed.fastq/${sample}_cutadapt_1.fq.gz -2 fixed.fastq/${sample}_cutadapt_2.fq.gz -S bam.bowtie2/${sample}.sam 2> ${sample}.bt2_mapping.log
+samtools view -@ 24 -bSh bam.bowtie2/${sample}.sam > bam.bowtie2/${sample}.bam
+samtools view -@ 24 -h  bam.bowtie2/${sample}.bam  | grep -v chrM | samtools sort  -O bam -o  bam.bowtie2/${sample}.rmChrM.sorted.bam
+rm bam.bowtie2/${sample}.sam bam.bowtie2/${sample}.bam
+samtools index -@ 24 bam.bowtie2/${sample}.rmChrM.sorted.bam
+java -Xms20g -Xmx20g -XX:ParallelGCThreads=16 -jar /sibcb1/wuweilab1/liangyu/Software/picard/picard.jar MarkDuplicates \
+I=bam.bowtie2/${sample}.rmChrM.sorted.bam O=bam.bowtie2/${sample}.rmChrM.sorted.rmdup.bam M=bam.bowtie2/${sample}.rmChrM.rmdup.matrix.txt ASO=coordinate REMOVE_DUPLICATES=true
+rm bam.bowtie2/${sample}.rmChrM.sorted.bam
+bedtools bamtobed -i bam.bowtie2/${sample}.rmChrM.sorted.rmdup.bam |\
+awk 'BEGIN{OFS="\t"}{if ($6=="+") print $1,$2+4,$3+4,$4,$5,$6;else if ($6=="-") print $1,$2-5,$3-5,$4,$5,$6}'|\
+awk '{if ($2>=0) print $0}' > bedfile/${sample}.rmChrM.sorted.rmdup.bed
+rpm=$(wc -l bedfile/${sample}.rmChrM.sorted.rmdup.bed |cut -f 1 -d ' '|awk '{printf "%f\n",$1/1000000.0}')
+rpm=$(awk '{printf "%f\n",1/("'$rpm'")}' /sibcb1/wuweilab1/wuwei2022/Wuwei/Pipeline/tst.txt)
+bedtools genomecov -bg -scale $rpm -i bedfile/${sample}.rmChrM.sorted.rmdup.bed -g $chromSize |bedtools sort -i stdin> bigwig/${sample}.rmChrM.sorted.rmdup.bedgraph
+bedGraphToBigWig bigwig/${sample}.rmChrM.sorted.rmdup.bedgraph $chromSize bigwig/${sample}.bw && rm bigwig/${sample}.rmChrM.sorted.rmdup.bedgraph
+
+date

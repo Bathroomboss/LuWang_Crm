@@ -1,0 +1,20 @@
+#!/bin/bash
+
+date
+
+Bowtieindex=/sibcb1/wuweilab1/wuwei-lab/Reference/Fly/dm6/Sequence/BowtieIndex/genome
+dm6ChromSize=/sibcb1/wuweilab1/wuwei-lab/Reference/Fly/dm6/Sequence/dm6.chrom.sizes
+
+bowtie -p 24 -k 1 ${Bowtieindex} -1 ../fixed.fastq/${Filename}_cutadapt_1_fq.gz -2 ../fixed.fastq/${Filename}_cutadapt_2_fq.gz  -S ${Filename}.sam --no-unal --chunkmbs 200 
+samtools view -@ 24 -h -b -f 3 -F 12 -q 20 -F 256 ${Filename}.sam > ${Filename}.bam
+samtools sort -@ 24 -o ${Filename}.sorted.bam ${Filename}.bam
+bedtools bamtobed -i ${Filename}.sorted.bam > ${Filename}.sorted.bed
+rpm=$(wc -l ${Filename}.sorted.bed|cut -f 1 -d ' '|awk '{printf "%f\n",$1/1000000.0}')
+rpm=$(awk '{printf "%f\n",1/("'$rpm'")}' /sibcb1/wuweilab1/wuwei2022/Wuwei/Pipeline/tst.txt)
+bedtools genomecov -bg -scale $rpm -i ${Filename}.sorted.bed -g ${dm6ChromSize}|bedtools sort -i stdin> ${Filename}.bedgraph
+bedGraphToBigWig ${Filename}.bedgraph ${dm6ChromSize} ${Filename}.bw
+
+rm ${Filename}.bedgraph
+rm ${Filename}.sam
+date
+

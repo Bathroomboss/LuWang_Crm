@@ -1,0 +1,32 @@
+#!/bin/bash
+#$ -cwd
+#$ -S /bin/bash
+#$ -j y
+#$ -l h_cpu=12:00:00
+#$ -m n
+#$ -M wuw@sibcb.ac.cn
+#$ -notify
+#$ -N Bowtie_mapping
+
+BowtieIndex=/sibcb1/wuweilab1/wuwei2022/Wuwei/WangLuLab/TEnoGFPBowtieIndex/TE
+Blacklist=/sibcb1/wuweilab1/liangyu/Pipeline/noblcaklist.bed
+chromSize=/sibcb1/wuweilab1/wuwei2022/Wuwei/WangLuLab/Drosophila_TE_full.chromsize.txt
+for File in 20240319-WSH-Drosophila-rectum-shCrm_END-seq 20240319-WSH-Drosophila-rectum-shWhite_END-seq;do
+    date 
+    bowtie --best -p 24 -n 3 -l 50 -k 1 $BowtieIndex -1 ../fixed.fastq/${File}_cutadapt_1.fq.gz -2 ../fixed.fastq/${File}_cutadapt_2.fq.gz -S ${File}.TE.sam --chunkmbs 200    
+    samtools view -@ 24 -bSh ${File}.TE.sam >  ${File}.TE.bam
+    samtools sort -@ 24 -o ${File}.TE.sorted.bam ${File}.TE.bam
+    java -jar /sibcb/program/install/picard/picard.jar MarkDuplicates I=${File}.TE.sorted.bam O=${File}.TE.sorted.rmDup.bam M=${File}.TE.rmdup_metrics.txt REMOVE_DUPLICATES=true
+    samtools view -@ 24 -bSh -f 64 ${File}.TE.sorted.rmDup.bam > ${File}.TE.sorted.rmDup.R1.bam 
+    samtools sort -@ 24 -o ${File}.TE.sorted.rmDup.R1.sorted.bam ${File}.TE.sorted.rmDup.R1.bam 
+    rm ${File}.TE.sorted.rmDup.R1.bam 
+    bedtools bamtobed -i ${File}.TE.sorted.rmDup.R1.sorted.bam |intersectBed -v -a - -b $Blacklist > ${File}.TE.sorted.rmDup.R1.sorted.bed
+    rpm=$(zcat ../fixed.fastq/${File}_cutadapt_1.fq.gz|wc -l|cut -f 1 -d ' '|awk '{printf "%f\n",$1/4000000.0}')
+    rpm=$(awk '{printf "%f\n",1/("'$rpm'")}' /sibcb1/wuweilab1/wuwei2022/Wuwei/Pipeline/tst.txt)
+    bedtools genomecov -bg -strand "+" -scale $rpm -i ${File}.TE.sorted.rmDup.R1.sorted.bed -g $chromSize|bedtools sort -i stdin> ${File}.TE.sorted.rmDup.R1.pos.bedgraph 
+    bedtools genomecov -bg -strand "-" -scale $rpm -i ${File}.TE.sorted.rmDup.R1.sorted.bed -g $chromSize|awk '{printf "%s\t%s\t%s\t%s\n",$1,$2,$3,-1*$4}'|bedtools sort -i stdin> ${File}.TE.sorted.rmDup.R1.neg.bedgraph 
+    bedGraphToBigWig ${File}.TE.sorted.rmDup.R1.pos.bedgraph $chromSize ${File}.TE.sorted.rmDup.R1.pos.bw && rm ${File}.TE.sorted.rmDup.R1.pos.bedgraph
+    bedGraphToBigWig ${File}.TE.sorted.rmDup.R1.neg.bedgraph $chromSize ${File}.TE.sorted.rmDup.R1.neg.bw && rm ${File}.TE.sorted.rmDup.R1.neg.bedgraph
+   date 
+done
+

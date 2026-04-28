@@ -1,0 +1,20 @@
+#!/bin/bash
+#$ -cwd
+#$ -S /bin/bash
+#$ -j y
+#$ -m n
+#$ -M wuw@sibcb.ac.cn
+#$ -notify
+#$ -N GetInsertion
+
+date
+cut -f 1-12 ${sample}.TE.dm6.TE.paf |awk '{if ($12>=30) print $0}' |awk '{OFS="\t"}{if ($9-$8 > 200) print $0}'  > ${sample}.TE.dm6.TE.col12.MQ30.len200.paf
+cut -f 1-12 ${sample}.TE.dm6.dm6.paf |awk '{if ($12>=30) print $0}' |awk '{OFS="\t"}{if ($9-$8 > 200) print $0}'  > ${sample}.TE.dm6.dm6.col12.MQ30.len200.paf
+
+source /sibcb/program/install/python-3.9/profile
+python 20240523_NewFindInsertion.py ${sample}.TE.dm6.TE.col12.MQ30.len200.paf ${sample}.TE.dm6.dm6.col12.MQ30.len200.paf \
+${sample}_partial_insertion.txt ${sample}_spanning_insertion.txt ${sample}_spanning_insertion_Constituent_elements.txt  \
+${sample}_partial_insertion_200kb.txt ${sample}_New_TE.paf
+
+date
+

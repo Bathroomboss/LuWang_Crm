@@ -1,0 +1,17 @@
+#!/bin/bash
+
+date
+export PATH=$PATH:/sibcb2/wuweilab2/liangyu/Software/piPipes
+source /sibcb/program/install/python-3.8/profile
+source /sibcb/program/install/r-3.6.1/profile
+
+echo $sample
+piPipes rna -l ../fixed.fastq/${sample}_cutadapt_R1.fastq.gz -r ../fixed.fastq/${sample}_cutadapt_R2.fastq.gz -c 12  -g dm6 -o ${sample}_out
+
+# compare 
+# piPipes rna2 -a 20240923-LYN-pupa4d-shwhite_RNA-seq_rep1_out,20240923-LYN-pupa4d-shwhite_RNA-seq_rep2_out -b 20240923-LYN-pupa4d-shHis1_RNA-seq_rep1_out,20240923-LYN-pupa4d-shHis1_RNA-seq_rep2_out \
+#  -o 20240923-shwhite.vs.shHis1 -A shwhite -B shHis1 -c 12 -g dm6 
+# piPipes rna2 -a 20240923-LYN-pupa4d-shwhite_RNA-seq_rep1_out -b 20240923-LYN-pupa4d-shHis1_RNA-seq_rep1_out -o 20240923-shwhite.vs.shHis1_rep1 -A shwhite_rep1 -B shHis1_rep1 -c 12 -g dm6
+# piPipes rna2 -a 20240923-LYN-pupa4d-shwhite_RNA-seq_rep2_out -b 20240923-LYN-pupa4d-shHis1_RNA-seq_rep2_out -o 20240923-shwhite.vs.shHis1_rep2 -A shwhite_rep2 -B shHis1_rep2 -c 12 -g dm6
+
+date

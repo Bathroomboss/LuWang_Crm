@@ -1,0 +1,15 @@
+#!/bin/bash
+
+date
+export PATH=/sibcb1/wuweilab1/yuanqingqing/miniconda3/bin:$PATH
+export PATH=/sibcb1/wuweilab1/wuwei-lab/Software/UCSC:$PATH
+source activate squire
+echo $sample
+squire Map -1 ../fixed.fastq/${sample}_cutadapt_R1.fastq.gz -2 ../fixed.fastq/${sample}_cutadapt_R2.fastq.gz -o ${sample}_Map_out \
+   -f /sibcb1/wuweilab1/yuanqingqing/Software/SQuIRE-master/squire_fetch/ -b dm6 -p 20 --verbosity -r 145
+squire Count -m ${sample}_Map_out -c /sibcb1/wuweilab1/yuanqingqing/Software/SQuIRE-master/squire_clean \
+    -o ${sample}_Count_out -f /sibcb1/wuweilab1/yuanqingqing/Software/SQuIRE-master/squire_fetch -r 145 -b dm6 \
+	-p 24 -s 1 --verbosity
+
+date
+
